@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.example.gigamall.dtos.TypeWithMaxSold;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -31,17 +32,33 @@ public class ProductsController {
 	
 	@GetMapping("/all")
 	public ResponseEntity<List<ProductEntity>> getAll(){
-		Integer[] ids = new Integer[50];
-		
-		for(int i=0;i<50;i++) {
-			ids[i] = i + 1;
+		int menId = productRepo.getMaxTypeId("Men's clothing");
+		int womenId = productRepo.getMaxTypeId("Women's clothing");
+
+		List<ProductEntity> products = new ArrayList<>(30);
+
+		products.addAll(productRepo.getMenClothesRandomly(menId, PageRequest.of(0, 4)));
+		products.addAll(productRepo.getWomenClothesRandomly(womenId, PageRequest.of(0, 4)));
+
+		List<ProductEntity> random = productRepo.getRandomly(productRepo.getMaxId(), PageRequest.of(0, 30));
+
+		for(int i=0;i<30 && products.size() != 30;i++) {
+			if(!containsId(products, random.get(i).getId())) {
+				products.add(random.get(i));
+			}
 		}
-		
-		List<Integer> arr = Arrays.asList(ids);
-		
-		Collections.shuffle(arr);
-		
-		return ResponseEntity.ok(productRepo.findAllById(arr.subList(0, 30)));
+
+		return ResponseEntity.ok(products);
+	}
+
+	private boolean containsId(List<ProductEntity> products, int id) {
+		for(ProductEntity product : products) {
+			if(product.getId() == id) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 	
 	@GetMapping("brands/all")
@@ -51,7 +68,15 @@ public class ProductsController {
 	
 	@GetMapping("category/each")
 	public ResponseEntity<List<ProductEntity>> getEach(){
-		return ResponseEntity.ok(productRepo.getEach());
+		List<TypeWithMaxSold> types = productRepo.findTypesWithMax();
+
+		List<ProductEntity> products = new ArrayList<>(types.size());
+		for(TypeWithMaxSold type : types) {
+			products.add(
+					productRepo.getTopProduct(type.getType(), type.getSoldNum(), PageRequest.of(0, 1)).get(0));
+		}
+
+		return ResponseEntity.ok(products);
 	}
 	
 	@GetMapping("category/{category}/{page}/{sortCondition}/{from}/{to}")

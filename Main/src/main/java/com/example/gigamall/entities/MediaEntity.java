@@ -16,7 +16,7 @@ public class MediaEntity {
 	private Integer id;
 	
 	@ManyToOne
-	@JoinColumn(name = "postId", nullable = false)
+	@JoinColumn(name = "post_id", nullable = false)
 	private PostEntity post;
 	
 	private String title;
